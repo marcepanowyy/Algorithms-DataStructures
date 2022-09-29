@@ -1,93 +1,71 @@
-# tworze tablice wypelniona n wartosciami (magazyny). Nastepnie rozmieszczam wegiel po kolei do magazynow
-# w zaleznosci od tego ktory moze przyjac okreslona wartosc. Szukamy ostatniego indeksu magazynu k, w ktorym mozemy
-# rozmiescic ostatnia porcje.
+# Algorytm tworzy nowa tablice, ktora zawiera pojemnosc magazynu pod i-tym
+# indeksem. Nastepnie tworzy drzewo przedzialowe, aby udostepnic wyszukanie
+# magazynu o najmniejszym indeksie, ktory pomiesci i-ty transport oraz zmiane
+# pojemnosci tego magazynu w czasie O(logn). W petli algorytm przechodzi
+# po wszystkich transportach i znaduje odpowiedni magazyn. Zwracany jest indeks,
+# do ktorego powedrowal ostatni transport.
 
+# Zlozonosc czasowa: O(nlogn)
+# Zlozonosc pamieciowa: O(n) 
 
-
-# n**2
 
 from egz2atesty import runtests
 
 
-def coal(A, T):
+class ST: # Segment Tree
+    def __init__(self, intLeft, intRight) -> None:
+        self.left = None
+        self.right = None
+        self.intLeft = intLeft
+        self.intRight = intRight
+        self.val = 0
+        self.idx = -1
 
+
+def buildTree(A, l, r):
+    if l == r:
+        root = ST(l, r)
+        root.val = A[l]
+        root.idx = l
+        return root
+    if l < r:
+        root = ST(l, r)
+        m = l + (r - l) // 2
+        root.left = buildTree(A, l, m)
+        root.right = buildTree(A, m + 1, r)
+        root.val = max(root.left.val, root.right.val)
+    return root
+
+
+def findIdx(root, x):
+    if root.left is None and root.right is None:
+        return root.idx
+    if root.left.val >= x:
+        return findIdx(root.left, x)
+    return findIdx(root.right, x)
+
+
+def changeVal(root, idx, val):
+    if root.idx == idx:
+        root.val -= val
+        return val
+    m = root.intLeft + (root.intRight - root.intLeft) // 2
+    if idx <= m:
+        changeVal(root.left, idx, val)
+    else:
+        changeVal(root.right, idx, val)
+    root.val = max(root.left.val, root.right.val)
+
+
+def coal( A, T ):
     n = len(A)
-    buckets = [T for _ in range(n)]
+    capacity = [T for _ in range(n)]
+    root = buildTree(capacity, 0, n - 1)
+    idx = 0
+    for i in range(n):
+        idx = findIdx(root, A[i])
+        changeVal(root, idx, A[i])
+    return idx
 
-    for idx, value in enumerate(A):
-        k = 0
-        while buckets[k] < value:
-            k += 1
-        else:
-            buckets[k] -= value
-
-    return k
-
-
-runtests( coal, all_tests = True )
-
-# probowalem rowniez rozwiazac zadanie uzywajac drzewa bst. Jesli od obecnego node'a mozemy odjac wartosc val z tablicy A
-# to to robimy, aktualizujemy pojemnosc i ustawiamy end_index (wartosc ktora nas interesuje).
-# jesli nie mozemy, to rozpatrujemy 2 mozliwosci. jesli tree.capacity > T - val to znaczy, ze po odjeciu,
-# mniejsza wartosc bedzie na lewo od obecnego node'a (dlatego drzewo BST), a jesli wieksza, to na prawo.
-# niestety program nie prezchodzi wszystkich testow
-
-
-# class Node:
-#     def __init__(self, capacity, id):
-#         self.capacity = capacity
-#         self.id = id
-#         self.right = None
-#         self.left = None
-#
-#
-#
-# def create_tree(A, T):
-#
-#     tree = Node(T, 0)
-#
-#     def insert(tree, val):
-#
-#         nonlocal T, idx, end_idx
-#
-#         if tree.capacity >= val:
-#             tree.capacity -= val
-#             end_idx = tree.id
-#
-#         else:
-#
-#             if tree.capacity > T - val:
-#
-#                 if tree.left:
-#                     tree = tree.left
-#                     insert(tree, val)
-#                 else:
-#                     new_node = Node(T, idx + 1)
-#                     idx += 1
-#                     tree.left = new_node
-#                     tree = tree.left
-#                     insert(tree, val)
-#
-#             else:
-#                 if tree.right:
-#                     tree = tree.right
-#                     insert(tree, val)
-#
-#                 else:
-#                     new_node = Node(T, idx+1)
-#                     idx += 1
-#                     tree.right = new_node
-#                     tree = tree.right
-#                     insert(tree, val)
-#
-#     idx = 0
-#     end_idx = 0
-#
-#     for val in A:
-#         insert(tree, val)
-#
-#     return end_idx
-#
-# runtests( create_tree, all_tests = True )
-
-
+# zmien all_tests na True zeby uruchomic wszystkie testy
+# runtests( coal, all_tests = True )
